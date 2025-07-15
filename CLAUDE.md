@@ -24,8 +24,8 @@ npm run type-check           # Run TypeScript type checking without emitting fil
 - **Frontend**: React 18 with TypeScript
 - **Build Tool**: Vite
 - **Styling**: Tailwind CSS
-- **State Management**: Zustand with SQLite persistence
-- **Database**: SQLite with better-sqlite3
+- **State Management**: Zustand with IndexedDB persistence
+- **Database**: IndexedDB with better-sqlite3
 - **UI Components**: Headless UI for accessible components
 - **LLM Integration**: OpenAI API and Google Gemini API with streaming support
 - **Code Quality**: Biome for linting and formatting
@@ -41,7 +41,7 @@ The application uses a **project-based architecture** where each project contain
 - **Specification**: Structured requirements extracted from conversation
 - **Generated Prompts**: Multiple prompt generations per project
 
-### Database Schema (SQLite)
+### Database Schema (IndexedDB)
 
 ```sql
 projects (id, name, description, created_at, updated_at, settings)
@@ -53,7 +53,7 @@ generated_prompts (id, project_id, specification_id, content, created_at)
 
 ### State Management Architecture
 
-- **Database Service** (`/src/lib/database/database.ts`): Handles all SQLite operations
+- **Database Service** (`/src/lib/database/database.ts`): Handles all IndexedDB operations
 - **Project Store** (`/src/store/project-store.ts`): Main Zustand store with database integration
 - **Legacy Stores**: Session-based stores for backwards compatibility and UI state
 - **Auto-save**: All changes automatically persist to database
@@ -70,7 +70,7 @@ generated_prompts (id, project_id, specification_id, content, created_at)
 1. **Conversation**: User interacts with AI via chat interface
 2. **Extraction**: `SpecificationParser.parseConversation()` extracts structured requirements
 3. **Validation**: Robust JSON parsing with error recovery and structure completion
-4. **Storage**: Persists to both SQLite database and localStorage
+4. **Storage**: Persists to both IndexedDB database and localStorage
 5. **Display**: Real-time updates in requirements panel
 
 ## Key Components Structure
@@ -155,10 +155,10 @@ VITE_MAX_CONVERSATION_LENGTH=50
 - **Performance**: Efficient re-renders with Zustand state management
 
 ### Database Development
-- **Local SQLite**: File-based database (`metaprompter.db`) for development
+- **Local IndexedDB**: Browser-based database for development
 - **Schema Evolution**: Manual schema updates in database service constructor
 - **Data Integrity**: Foreign key constraints and proper indexing
-- **Backup Strategy**: Database file can be copied for backups
+- **Backup Strategy**: Database file can be exported for backups
 
 ## Common Development Patterns
 
@@ -190,7 +190,7 @@ VITE_MAX_CONVERSATION_LENGTH=50
 
 ## Security & Privacy
 
-- **Local Storage**: All data stored locally in SQLite database
+- **Local Storage**: All data stored locally in IndexedDB database
 - **API Key Management**: Secure storage in localStorage with settings panel
 - **Input Validation**: Comprehensive sanitization of user inputs
 - **No Server Dependencies**: Fully client-side application
@@ -198,7 +198,7 @@ VITE_MAX_CONVERSATION_LENGTH=50
 ## Implementation Status
 
 The project is **fully implemented** with all major features working:
-- ✅ SQLite database persistence with project management
+- ✅ IndexedDB database persistence with project management
 - ✅ AI-powered requirement gathering with OpenAI and Gemini
 - ✅ Structured requirement extraction and editing
 - ✅ Comprehensive prompt generation
