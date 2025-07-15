@@ -53,6 +53,7 @@ const RequirementsPanel: React.FC = () => {
 				technicalRequirements: [],
 				constraints: [],
 				uiRequirements: [],
+				techStack: [],
 				createdAt: new Date(),
 				updatedAt: new Date(),
 				conversationId: currentProject.conversation.id,
@@ -104,7 +105,8 @@ const RequirementsPanel: React.FC = () => {
 				(updates.features?.length || 0) +
 				(updates.technicalRequirements?.length || 0) +
 				(updates.uiRequirements?.length || 0) +
-				(updates.constraints?.length || 0);
+				(updates.constraints?.length || 0) +
+				(updates.techStack?.length || 0);
 
 			if (totalRequirements > 0) {
 				const titleMsg =

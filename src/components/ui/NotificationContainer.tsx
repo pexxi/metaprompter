@@ -40,7 +40,7 @@ const NotificationContainer: React.FC = () => {
 	};
 
 	return (
-		<div className="fixed top-4 right-4 z-50 space-y-2 max-w-sm">
+		<div className="fixed bottom-4 right-4 z-50 space-y-2 max-w-sm">
 			{notifications.map((notification) => (
 				<Card
 					key={notification.id}
@@ -63,6 +63,7 @@ const NotificationContainer: React.FC = () => {
 								)}
 								{notification.action && (
 									<button
+										type="button"
 										onClick={notification.action.handler}
 										className="text-sm underline mt-2 hover:no-underline"
 									>
@@ -72,6 +73,7 @@ const NotificationContainer: React.FC = () => {
 							</div>
 						</div>
 						<button
+							type="button"
 							onClick={() => dismissNotification(notification.id)}
 							className="flex-shrink-0 ml-2 text-lg opacity-60 hover:opacity-100 transition-opacity"
 						>

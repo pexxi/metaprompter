@@ -27,7 +27,7 @@ const TwoColumnLayout: React.FC<TwoColumnLayoutProps> = ({
 			</div>
 
 			{/* Bottom section - Prompt Generator */}
-			<div className="border-t border-gray-200 max-h-96 overflow-y-auto">
+			<div className="border-t border-gray-200 h-[32rem] overflow-y-auto">
 				{bottomSection}
 			</div>
 		</div>

@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import { database } from "../lib/database/database";
+import { ChatService } from "../lib/ai/chat-service";
+import { SpecificationParser } from "../lib/specification/parser";
 import type { Project, ProjectSummary } from "../types/project";
 import type { Message } from "../types/chat";
 import type { Specification } from "../types/specification";
@@ -9,6 +11,7 @@ interface ProjectState {
 	currentProject: Project | null;
 	projectSummaries: ProjectSummary[];
 	isLoading: boolean;
+	userMessageCount: number;
 
 	// Actions
 	createProject: (name: string, description?: string) => Promise<string>;
@@ -38,12 +41,14 @@ interface ProjectState {
 	// Utility actions
 	setLoading: (loading: boolean) => void;
 	clearCurrentProject: () => void;
+	triggerRequirementsUpdate: () => Promise<void>;
 }
 
 export const useProjectStore = create<ProjectState>((set, get) => ({
 	currentProject: null,
 	projectSummaries: [],
 	isLoading: false,
+	userMessageCount: 0,
 
 	createProject: async (name: string, description?: string) => {
 		set({ isLoading: true });
@@ -52,7 +57,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 			const project = await database.getProject(projectId);
 
 			if (project) {
-				set({ currentProject: project });
+				set({ currentProject: project, userMessageCount: 0 });
 				await get().loadProjectSummaries();
 			}
 
@@ -69,7 +74,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 		set({ isLoading: true });
 		try {
 			const project = await database.getProject(id);
-			set({ currentProject: project });
+			set({ currentProject: project, userMessageCount: 0 });
 		} catch (error) {
 			console.error("Failed to load project:", error);
 			throw error;
@@ -130,7 +135,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 	},
 
 	addMessage: async (message: Omit<Message, "id" | "timestamp">) => {
-		const { currentProject } = get();
+		const { currentProject, userMessageCount } = get();
 		if (!currentProject) throw new Error("No current project");
 
 		try {
@@ -146,16 +151,38 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 				...message,
 			};
 
-			set({
-				currentProject: {
-					...currentProject,
-					conversation: {
-						...currentProject.conversation,
-						messages: [...currentProject.conversation.messages, newMessage],
-						updatedAt: new Date(),
-					},
+			const updatedProject = {
+				...currentProject,
+				conversation: {
+					...currentProject.conversation,
+					messages: [...currentProject.conversation.messages, newMessage],
 					updatedAt: new Date(),
 				},
+				updatedAt: new Date(),
+			};
+
+			let newUserMessageCount = userMessageCount;
+
+			// Track successful user messages only (not error messages)
+			if (message.role === "user" && !message.isError) {
+				newUserMessageCount += 1;
+				
+				// Check if we need to trigger requirements update
+				if (newUserMessageCount % 5 === 0) {
+					// Trigger requirements update asynchronously
+					setTimeout(async () => {
+						try {
+							await get().triggerRequirementsUpdate();
+						} catch (error) {
+							console.error("Auto requirements update failed:", error);
+						}
+					}, 100);
+				}
+			}
+
+			set({
+				currentProject: updatedProject,
+				userMessageCount: newUserMessageCount,
 			});
 
 			return messageId;
@@ -199,7 +226,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 		try {
 			await database.clearMessages(currentProject.conversation.id);
 
-			// Update local state
+			// Update local state and reset counter
 			set({
 				currentProject: {
 					...currentProject,
@@ -210,6 +237,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 					},
 					updatedAt: new Date(),
 				},
+				userMessageCount: 0,
 			});
 		} catch (error) {
 			console.error("Failed to clear messages:", error);
@@ -312,6 +340,55 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 	},
 
 	clearCurrentProject: () => {
-		set({ currentProject: null });
+		set({ currentProject: null, userMessageCount: 0 });
+	},
+
+	triggerRequirementsUpdate: async () => {
+		const { currentProject } = get();
+		if (!currentProject) return;
+
+		try {
+			// Get API settings from localStorage (since we can't access settings store here)
+			const settingsString = localStorage.getItem("settings-storage");
+			if (!settingsString) return;
+			
+			const settings = JSON.parse(settingsString);
+			if (!settings.state) return;
+
+			const { aiProvider, openaiApiKey, geminiApiKey } = settings.state;
+			
+			// Check if we have a valid API key
+			const hasValidKey = aiProvider === "openai" ? !!openaiApiKey : !!geminiApiKey;
+			if (!hasValidKey) return;
+
+			const chatService = new ChatService({
+				provider: aiProvider,
+				openaiApiKey,
+				geminiApiKey,
+			});
+
+			const updates = await SpecificationParser.parseConversation(
+				currentProject.conversation.messages,
+				chatService,
+			);
+
+			// Save the updated specification
+			await get().saveSpecification({
+				id: currentProject.specification?.id || `spec-${Date.now()}`,
+				conversationId: currentProject.conversation.id,
+				createdAt: currentProject.specification?.createdAt || new Date(),
+				updatedAt: new Date(),
+				title: currentProject.specification?.title || "Untitled Project",
+				description: currentProject.specification?.description || "",
+				features: currentProject.specification?.features || [],
+				technicalRequirements: currentProject.specification?.technicalRequirements || [],
+				constraints: currentProject.specification?.constraints || [],
+				uiRequirements: currentProject.specification?.uiRequirements || [],
+				techStack: currentProject.specification?.techStack || [],
+				...updates,
+			});
+		} catch (error) {
+			console.error("Failed to trigger requirements update:", error);
+		}
 	},
 }));

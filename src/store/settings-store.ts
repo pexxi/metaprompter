@@ -23,6 +23,7 @@ interface SettingsState {
 	getActiveApiKey: () => string;
 	hasValidApiKey: () => boolean;
 	isProviderConfigured: (provider: AIProvider) => boolean;
+	getAISettings: () => { provider: AIProvider; openaiApiKey?: string; geminiApiKey?: string };
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -72,6 +73,15 @@ export const useSettingsStore = create<SettingsState>()(
 			isProviderConfigured: (provider: AIProvider) => {
 				const { openaiApiKey, geminiApiKey } = get();
 				return provider === "openai" ? !!openaiApiKey : !!geminiApiKey;
+			},
+
+			getAISettings: () => {
+				const { aiProvider, openaiApiKey, geminiApiKey } = get();
+				return {
+					provider: aiProvider,
+					openaiApiKey: openaiApiKey || undefined,
+					geminiApiKey: geminiApiKey || undefined,
+				};
 			},
 		}),
 		{

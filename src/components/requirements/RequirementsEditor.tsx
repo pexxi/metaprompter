@@ -87,6 +87,35 @@ const RequirementsEditor: React.FC<RequirementsEditorProps> = ({
 		});
 	};
 
+	const addTechStack = () => {
+		const newTech = {
+			id: `tech_stack_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+			name: "",
+			category: "other" as const,
+			description: "",
+		};
+		setEditedSpec({
+			...editedSpec,
+			techStack: [...editedSpec.techStack, newTech],
+		});
+	};
+
+	const updateTechStack = (id: string, updates: any) => {
+		setEditedSpec({
+			...editedSpec,
+			techStack: editedSpec.techStack.map((tech) =>
+				tech.id === id ? { ...tech, ...updates } : tech,
+			),
+		});
+	};
+
+	const removeTechStack = (id: string) => {
+		setEditedSpec({
+			...editedSpec,
+			techStack: editedSpec.techStack.filter((tech) => tech.id !== id),
+		});
+	};
+
 	return (
 		<div className="space-y-4 max-h-full overflow-y-auto">
 			{/* Project Overview */}
@@ -227,6 +256,66 @@ const RequirementsEditor: React.FC<RequirementsEditorProps> = ({
 									})
 								}
 								placeholder="Requirement description"
+								fullWidth
+								rows={2}
+							/>
+						</div>
+					))}
+				</div>
+			</Card>
+
+			{/* Tech Stack */}
+			<Card>
+				<div className="flex items-center justify-between mb-3">
+					<h3 className="font-semibold text-lg">Tech Stack</h3>
+					<Button size="sm" onClick={addTechStack}>
+						Add Technology
+					</Button>
+				</div>
+				<div className="space-y-3">
+					{editedSpec.techStack.map((tech) => (
+						<div key={tech.id} className="border rounded-lg p-3 bg-gray-50">
+							<div className="flex items-start justify-between mb-2">
+								<Input
+									value={tech.name}
+									onChange={(e) =>
+										updateTechStack(tech.id, { name: e.target.value })
+									}
+									placeholder="Technology name (e.g., React, Node.js)"
+									className="flex-1 mr-2"
+								/>
+								<select
+									value={tech.category}
+									onChange={(e) =>
+										updateTechStack(tech.id, { category: e.target.value })
+									}
+									className="px-2 py-1 border border-gray-300 rounded text-sm"
+								>
+									<option value="frontend">Frontend</option>
+									<option value="backend">Backend</option>
+									<option value="database">Database</option>
+									<option value="devops">DevOps</option>
+									<option value="library">Library</option>
+									<option value="framework">Framework</option>
+									<option value="language">Language</option>
+									<option value="tool">Tool</option>
+									<option value="other">Other</option>
+								</select>
+								<Button
+									size="sm"
+									variant="ghost"
+									onClick={() => removeTechStack(tech.id)}
+									className="ml-2 text-red-600 hover:text-red-800"
+								>
+									×
+								</Button>
+							</div>
+							<Textarea
+								value={tech.description || ""}
+								onChange={(e) =>
+									updateTechStack(tech.id, { description: e.target.value })
+								}
+								placeholder="Optional description of how this technology will be used"
 								fullWidth
 								rows={2}
 							/>

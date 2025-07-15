@@ -15,6 +15,8 @@ import ProjectDropdown from "../project/ProjectDropdown";
 
 const MainLayout: React.FC = () => {
 	const [showSettings, setShowSettings] = useState<boolean>(false);
+	const [isInitializing, setIsInitializing] = useState<boolean>(true);
+	const [hasProcessedInitialProjects, setHasProcessedInitialProjects] = useState<boolean>(false);
 	const { sendMessage, resetChatService } = useChat();
 	const {
 		currentProject,
@@ -34,6 +36,8 @@ const MainLayout: React.FC = () => {
 				await loadProjectSummaries();
 			} catch (error) {
 				console.error("Failed to initialize database:", error);
+			} finally {
+				setIsInitializing(false);
 			}
 		};
 
@@ -42,28 +46,28 @@ const MainLayout: React.FC = () => {
 
 	// Auto-create first project if no projects exist, or load the most recent project
 	useEffect(() => {
+		// Only run after initialization is complete and we haven't processed initial projects yet
+		if (isInitializing || hasProcessedInitialProjects) return;
+
 		const ensureActiveProject = async () => {
-			if (projectSummaries.length === 0 && !currentProject) {
-				// No projects exist, create the first one
-				try {
+			try {
+				if (projectSummaries.length === 0 && !currentProject) {
+					// No projects exist, create the first one
 					await createProject("My First Project", "Welcome to MetaPrompter! Start by describing your software project idea.");
-				} catch (error) {
-					console.error("Failed to auto-create first project:", error);
-				}
-			} else if (projectSummaries.length > 0 && !currentProject) {
-				// Projects exist but none is selected, load the most recent one
-				try {
+				} else if (projectSummaries.length > 0 && !currentProject) {
+					// Projects exist but none is selected, load the most recent one
 					const mostRecentProject = projectSummaries[0]; // Already sorted by updated_at DESC
 					await loadProject(mostRecentProject.id);
-				} catch (error) {
-					console.error("Failed to load most recent project:", error);
 				}
+			} catch (error) {
+				console.error("Failed to ensure active project:", error);
+			} finally {
+				setHasProcessedInitialProjects(true);
 			}
 		};
 
-		// Only run after project summaries have been loaded
 		ensureActiveProject();
-	}, [projectSummaries, currentProject, createProject, loadProject]);
+	}, [isInitializing, hasProcessedInitialProjects, projectSummaries, currentProject, createProject, loadProject]);
 
 	// Get project title from current project
 	const projectTitle = currentProject?.name || "";

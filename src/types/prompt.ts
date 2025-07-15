@@ -10,4 +10,6 @@ export interface GeneratedPrompt {
 	content: string;
 	createdAt: Date;
 	specificationId: string;
+	targetPlatform?: "lovable" | "v0" | "replit" | "general";
+	generatedWithLLM?: boolean;
 }

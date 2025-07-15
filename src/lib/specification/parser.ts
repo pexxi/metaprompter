@@ -4,6 +4,7 @@ import type {
 	Feature,
 	Specification,
 	TechnicalRequirement,
+	TechStack,
 	UIRequirement,
 } from "../../types/specification";
 
@@ -43,6 +44,14 @@ Please analyze the conversation and extract the following information in a struc
       "component": "Component/screen name",
       "description": "UI requirement description"
     }
+  ],
+  "techStack": [
+    {
+      "id": "unique_id",
+      "name": "Technology name (e.g., React, Node.js, PostgreSQL)",
+      "category": "frontend|backend|database|devops|library|framework|language|tool|other",
+      "description": "Optional description of how this tech will be used"
+    }
   ]
 }
 
@@ -50,9 +59,11 @@ Guidelines:
 - Extract only information that was explicitly mentioned or strongly implied in the conversation
 - Prioritize features based on how much they were discussed or emphasized
 - Include technical requirements even if they're preferences
-- Don't invent requirements that weren't discussed
-- Use descriptive IDs (e.g., "user_auth", "payment_processing")
+- For tech stack, identify technologies, frameworks, languages, databases, and tools mentioned
+- Don't invent requirements or technologies that weren't discussed
+- Use descriptive IDs (e.g., "user_auth", "payment_processing", "react_frontend")
 - Be specific and actionable in descriptions
+- Categorize technologies appropriately (frontend, backend, database, etc.)
 
 Return only the JSON object, no additional text.`;
 
@@ -213,6 +224,9 @@ export class SpecificationParser {
 				uiRequirements: SpecificationParser.validateUIRequirements(
 					parsedData.uiRequirements || [],
 				),
+				techStack: SpecificationParser.validateTechStack(
+					parsedData.techStack || [],
+				),
 			};
 		} catch (error) {
 			console.error("Error parsing conversation:", error);
@@ -266,6 +280,30 @@ export class SpecificationParser {
 				req.id || `ui_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
 			component: req.component || "Component",
 			description: req.description || "",
+		}));
+	}
+
+	private static validateTechStack(techStack: any[]): TechStack[] {
+		const validCategories = [
+			"frontend",
+			"backend",
+			"database",
+			"devops",
+			"library",
+			"framework",
+			"language",
+			"tool",
+			"other",
+		];
+
+		return techStack.map((tech) => ({
+			id:
+				tech.id || `tech_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+			name: tech.name || "Unknown Technology",
+			category: validCategories.includes(tech.category)
+				? tech.category
+				: "other",
+			description: tech.description || "",
 		}));
 	}
 }

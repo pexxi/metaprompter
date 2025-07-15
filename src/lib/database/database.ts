@@ -56,6 +56,7 @@ interface DBSchema {
 			technical_requirements: string;
 			constraints: string;
 			ui_requirements: string;
+			tech_stack: string;
 			created_at: string;
 			updated_at: string;
 		};
@@ -69,6 +70,8 @@ interface DBSchema {
 			specification_id: string;
 			content: string;
 			created_at: string;
+			target_platform?: string;
+			generated_with_llm?: boolean;
 		};
 		indexes: { 'by-project': string };
 	};
@@ -79,27 +82,34 @@ class DatabaseService {
 
 	async initialize() {
 		if (!this.db) {
-			this.db = await openDB<DBSchema>("metaprompter", 1, {
-				upgrade(db) {
-					// Create projects store
-					const projectStore = db.createObjectStore("projects", { keyPath: "id" });
-					projectStore.createIndex("by-updated", "updated_at");
+			this.db = await openDB<DBSchema>("metaprompter", 2, {
+				upgrade(db, oldVersion) {
+					if (oldVersion < 1) {
+						// Create projects store
+						const projectStore = db.createObjectStore("projects", { keyPath: "id" });
+						projectStore.createIndex("by-updated", "updated_at");
 
-					// Create conversations store
-					const conversationStore = db.createObjectStore("conversations", { keyPath: "id" });
-					conversationStore.createIndex("by-project", "project_id");
+						// Create conversations store
+						const conversationStore = db.createObjectStore("conversations", { keyPath: "id" });
+						conversationStore.createIndex("by-project", "project_id");
 
-					// Create messages store
-					const messageStore = db.createObjectStore("messages", { keyPath: "id" });
-					messageStore.createIndex("by-conversation", "conversation_id");
+						// Create messages store
+						const messageStore = db.createObjectStore("messages", { keyPath: "id" });
+						messageStore.createIndex("by-conversation", "conversation_id");
 
-					// Create specifications store
-					const specStore = db.createObjectStore("specifications", { keyPath: "id" });
-					specStore.createIndex("by-project", "project_id");
+						// Create specifications store
+						const specStore = db.createObjectStore("specifications", { keyPath: "id" });
+						specStore.createIndex("by-project", "project_id");
 
-					// Create generated_prompts store
-					const promptStore = db.createObjectStore("generated_prompts", { keyPath: "id" });
-					promptStore.createIndex("by-project", "project_id");
+						// Create generated_prompts store
+						const promptStore = db.createObjectStore("generated_prompts", { keyPath: "id" });
+						promptStore.createIndex("by-project", "project_id");
+					}
+					
+					if (oldVersion < 2) {
+						// Migration for tech_stack field - handled automatically by put operations
+						// since we're adding a new field with default value
+					}
 				},
 			});
 		}
@@ -186,6 +196,7 @@ class DatabaseService {
 				technicalRequirements: JSON.parse(specRow.technical_requirements),
 				constraints: JSON.parse(specRow.constraints),
 				uiRequirements: JSON.parse(specRow.ui_requirements),
+				techStack: specRow.tech_stack ? JSON.parse(specRow.tech_stack) : [],
 				createdAt: new Date(specRow.created_at),
 				updatedAt: new Date(specRow.updated_at),
 				conversationId: specRow.conversation_id,
@@ -200,6 +211,8 @@ class DatabaseService {
 				content: row.content,
 				createdAt: new Date(row.created_at),
 				specificationId: row.specification_id,
+				targetPlatform: row.target_platform as "lovable" | "v0" | "replit" | "general" | undefined,
+				generatedWithLLM: row.generated_with_llm,
 			}));
 
 		return {
@@ -227,8 +240,17 @@ class DatabaseService {
 				? (await db.getAllFromIndex("messages", "by-conversation", conversation.id)).length 
 				: 0;
 
-			const hasSpecification = await db.getFromIndex("specifications", "by-project", project.id) != null;
-			const hasGeneratedPrompts = (await db.getAllFromIndex("generated_prompts", "by-project", project.id)).length > 0;
+			const specification = await db.getFromIndex("specifications", "by-project", project.id);
+			let featureCount = 0;
+			if (specification != null && specification.features) {
+				try {
+					const features = JSON.parse(specification.features);
+					featureCount = Array.isArray(features) ? features.length : 0;
+				} catch (error) {
+					// If JSON parsing fails, treat as no features
+					featureCount = 0;
+				}
+			}
 
 			summaries.push({
 				id: project.id,
@@ -237,8 +259,7 @@ class DatabaseService {
 				createdAt: new Date(project.created_at),
 				updatedAt: new Date(project.updated_at),
 				messageCount,
-				hasSpecification,
-				hasGeneratedPrompts,
+				featureCount,
 			});
 		}
 
@@ -414,6 +435,7 @@ class DatabaseService {
 			technical_requirements: JSON.stringify(specification.technicalRequirements),
 			constraints: JSON.stringify(specification.constraints),
 			ui_requirements: JSON.stringify(specification.uiRequirements),
+			tech_stack: JSON.stringify(specification.techStack || []),
 			created_at: specification.createdAt.toISOString(),
 			updated_at: now,
 		});
@@ -452,6 +474,8 @@ class DatabaseService {
 			specification_id: prompt.specificationId,
 			content: prompt.content,
 			created_at: prompt.createdAt.toISOString(),
+			target_platform: prompt.targetPlatform,
+			generated_with_llm: prompt.generatedWithLLM,
 		});
 
 		// Update project timestamp

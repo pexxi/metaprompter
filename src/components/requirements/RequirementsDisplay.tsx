@@ -48,6 +48,29 @@ const RequirementsDisplay: React.FC<RequirementsDisplayProps> = ({
 		}
 	};
 
+	const getTechStackCategoryColor = (category: string) => {
+		switch (category) {
+			case "frontend":
+				return "text-blue-600 bg-blue-100";
+			case "backend":
+				return "text-green-600 bg-green-100";
+			case "database":
+				return "text-purple-600 bg-purple-100";
+			case "devops":
+				return "text-orange-600 bg-orange-100";
+			case "library":
+				return "text-cyan-600 bg-cyan-100";
+			case "framework":
+				return "text-indigo-600 bg-indigo-100";
+			case "language":
+				return "text-red-600 bg-red-100";
+			case "tool":
+				return "text-gray-600 bg-gray-100";
+			default:
+				return "text-gray-600 bg-gray-100";
+		}
+	};
+
 	return (
 		<div className="space-y-4">
 			{/* Project Overview */}
@@ -191,6 +214,42 @@ const RequirementsDisplay: React.FC<RequirementsDisplayProps> = ({
 									<p className="text-sm text-gray-600 mt-1">
 										{req.description}
 									</p>
+								</div>
+							</div>
+						))}
+					</div>
+				)}
+			</Card>
+
+			{/* Tech Stack */}
+			<Card>
+				<h3 className="font-semibold text-lg mb-3">
+					Tech Stack ({specification.techStack.length})
+				</h3>
+				{specification.techStack.length === 0 ? (
+					<p className="text-gray-500 text-sm">
+						No technologies specified yet
+					</p>
+				) : (
+					<div className="space-y-3">
+						{specification.techStack.map((tech) => (
+							<div key={tech.id} className="border-l-4 border-indigo-200 pl-3">
+								<div className="flex items-start justify-between">
+									<div className="flex-1">
+										<div className="flex items-center gap-2">
+											<h4 className="font-medium text-gray-900">{tech.name}</h4>
+											<span
+												className={`px-2 py-1 rounded-full text-xs font-medium ${getTechStackCategoryColor(tech.category)}`}
+											>
+												{tech.category}
+											</span>
+										</div>
+										{tech.description && (
+											<p className="text-sm text-gray-600 mt-1">
+												{tech.description}
+											</p>
+										)}
+									</div>
 								</div>
 							</div>
 						))}

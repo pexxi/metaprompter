@@ -25,6 +25,13 @@ export interface UIRequirement {
 	mockup?: string;
 }
 
+export interface TechStack {
+	id: string;
+	name: string;
+	category: "frontend" | "backend" | "database" | "devops" | "library" | "framework" | "language" | "tool" | "other";
+	description?: string;
+}
+
 export interface Specification {
 	id: string;
 	title: string;
@@ -33,6 +40,7 @@ export interface Specification {
 	technicalRequirements: TechnicalRequirement[];
 	constraints: Constraint[];
 	uiRequirements: UIRequirement[];
+	techStack: TechStack[];
 	createdAt: Date;
 	updatedAt: Date;
 	conversationId: string;

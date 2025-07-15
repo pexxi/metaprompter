@@ -1,10 +1,12 @@
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
-import { generateComprehensivePrompt } from "../../lib/prompts/generators";
 import { useProjectStore } from "../../store/project-store";
 import { useNotificationStore } from "../../store/notification-store";
+import { useSettingsStore } from "../../store/settings-store";
 import { nanoid } from "nanoid";
 import type { GeneratedPrompt } from "../../types/prompt";
+import { PromptGenerationService } from "../../lib/ai/prompt-generation-service";
+import { ChatService } from "../../lib/ai/chat-service";
 import Button from "../ui/Button";
 import Card from "../ui/Card";
 import PromptOutput from "./PromptOutput";
@@ -12,6 +14,7 @@ import PromptOutput from "./PromptOutput";
 const PromptGenerator: React.FC = () => {
 	const [generatedPrompt, setGeneratedPrompt] = useState<string>("");
 	const [isGenerating, setIsGenerating] = useState(false);
+	const [targetPlatform, setTargetPlatform] = useState<"lovable" | "v0" | "replit" | "general">("general");
 
 	const { currentProject, saveGeneratedPrompt } = useProjectStore();
 	const {
@@ -19,6 +22,7 @@ const PromptGenerator: React.FC = () => {
 		error: showError,
 		info: showInfo,
 	} = useNotificationStore();
+	const { getAISettings } = useSettingsStore();
 
 	const activeSpecification = currentProject?.specification;
 	const activeConversation = currentProject?.conversation;
@@ -46,11 +50,32 @@ const PromptGenerator: React.FC = () => {
 
 		setIsGenerating(true);
 		try {
-			// Add a small delay to show loading state
-			await new Promise((resolve) => setTimeout(resolve, 500));
+			const aiSettings = getAISettings();
+			if (!aiSettings.openaiApiKey && !aiSettings.geminiApiKey) {
+				showError(
+					"AI API key required",
+					"Please configure your AI API key in settings to generate prompts.",
+				);
+				return;
+			}
 
-			const prompt = generateComprehensivePrompt(activeSpecification);
-			setGeneratedPrompt(prompt);
+			const chatService = new ChatService(aiSettings);
+			const promptService = new PromptGenerationService(chatService);
+
+			const context = {
+				specification: activeSpecification,
+				conversation: activeConversation,
+				targetPlatform,
+			};
+
+			let prompt = "";
+			await promptService.generateComprehensivePromptStream(
+				context,
+				(chunk: string) => {
+					prompt += chunk;
+					setGeneratedPrompt(prompt);
+				},
+			);
 
 			// Save to database
 			const generatedPrompt: GeneratedPrompt = {
@@ -58,6 +83,8 @@ const PromptGenerator: React.FC = () => {
 				content: prompt,
 				createdAt: new Date(),
 				specificationId: activeSpecification.id,
+				targetPlatform,
+				generatedWithLLM: true,
 			};
 			await saveGeneratedPrompt(generatedPrompt);
 
@@ -66,7 +93,7 @@ const PromptGenerator: React.FC = () => {
 				.filter((word: string) => word.length > 0).length;
 			showSuccess(
 				"Prompt generated",
-				`Created a ${wordCount}-word comprehensive prompt ready for AI code generation.`,
+				`Created a ${wordCount}-word comprehensive prompt optimized for ${targetPlatform}.`,
 			);
 		} catch (error) {
 			console.error("Error generating prompt:", error);
@@ -79,6 +106,9 @@ const PromptGenerator: React.FC = () => {
 		}
 	}, [
 		activeSpecification,
+		activeConversation,
+		targetPlatform,
+		getAISettings,
 		saveGeneratedPrompt,
 		showSuccess,
 		showError,
@@ -161,13 +191,26 @@ const PromptGenerator: React.FC = () => {
 						requirements
 					</p>
 				</div>
-				<Button
-					onClick={handleGeneratePrompt}
-					disabled={!canGeneratePrompt}
-					loading={isGenerating}
-				>
-					Generate Prompt
-				</Button>
+				<div className="flex items-center gap-3">
+					<select
+						value={targetPlatform}
+						onChange={(e) => setTargetPlatform(e.target.value as typeof targetPlatform)}
+						className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+						disabled={isGenerating}
+					>
+						<option value="general">General</option>
+						<option value="lovable">Lovable</option>
+						<option value="v0">v0</option>
+						<option value="replit">Replit</option>
+					</select>
+					<Button
+						onClick={handleGeneratePrompt}
+						disabled={!canGeneratePrompt}
+						loading={isGenerating}
+					>
+						Generate Prompt
+					</Button>
+				</div>
 			</div>
 
 			{!canGeneratePrompt && (

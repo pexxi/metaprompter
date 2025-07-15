@@ -47,8 +47,8 @@ The application uses a **project-based architecture** where each project contain
 projects (id, name, description, created_at, updated_at, settings)
 conversations (id, project_id, created_at, updated_at)
 messages (id, conversation_id, role, content, timestamp, is_error)
-specifications (id, project_id, conversation_id, title, description, features, technical_requirements, constraints, ui_requirements, created_at, updated_at)
-generated_prompts (id, project_id, specification_id, content, created_at)
+specifications (id, project_id, conversation_id, title, description, features, technical_requirements, constraints, ui_requirements, tech_stack, created_at, updated_at)
+generated_prompts (id, project_id, specification_id, content, created_at, target_platform, generated_with_llm)
 ```
 
 ### State Management Architecture
@@ -61,17 +61,27 @@ generated_prompts (id, project_id, specification_id, content, created_at)
 ### AI Integration Pattern
 
 - **Unified Chat Service** (`/src/lib/ai/chat-service.ts`): Abstracts OpenAI and Gemini APIs
+- **Prompt Generation Service** (`/src/lib/ai/prompt-generation-service.ts`): LLM-based prompt generation with platform optimization
 - **Streaming Support**: Real-time response streaming with character-by-character display
 - **Message Filtering**: `filterMessagesForLLM` prevents consecutive user messages
 - **Context Management**: Dynamic system prompts based on conversation state
+- **Platform Targeting**: Specialized prompt generation for Lovable, v0, Replit, and general platforms
 
 ### Requirements Processing Pipeline
 
 1. **Conversation**: User interacts with AI via chat interface
 2. **Extraction**: `SpecificationParser.parseConversation()` extracts structured requirements
 3. **Validation**: Robust JSON parsing with error recovery and structure completion
-4. **Storage**: Persists to both IndexedDB database and localStorage
+4. **Storage**: Persists to IndexedDB database with auto-save
 5. **Display**: Real-time updates in requirements panel
+
+### Prompt Generation Pipeline
+
+1. **Requirements Analysis**: LLM analyzes extracted specifications and conversation context
+2. **Platform Optimization**: Generates platform-specific guidelines (Lovable, v0, Replit, general)
+3. **Architecture Design**: Creates technical architecture recommendations based on requirements
+4. **Implementation Planning**: Develops step-by-step implementation strategy
+5. **Comprehensive Output**: Produces self-contained, actionable prompts for AI code generation
 
 ## Key Components Structure
 
@@ -83,7 +93,7 @@ generated_prompts (id, project_id, specification_id, content, created_at)
 ### Core Components
 - **ChatInterface**: Message display, input, streaming indicators, uses `useChat` hook
 - **RequirementsPanel**: Specification display with edit capabilities
-- **PromptGenerator**: Prompt creation and export functionality
+- **PromptGenerator**: LLM-based prompt generation with platform selection and streaming output
 - **ProjectDropdown**: Project selection with recent projects list
 
 ### Data Flow
@@ -94,7 +104,7 @@ Message Storage → Database → ProjectStore → UI Updates
      ↓
 SpecificationParser → AI Analysis → Structured Data → RequirementsPanel
      ↓
-PromptGenerator → Template System → Comprehensive Prompt → Export
+PromptGenerator → PromptGenerationService → LLM Analysis → Platform-Optimized Prompt → Export
 ```
 
 ## Critical Implementation Details
@@ -108,6 +118,7 @@ The `SpecificationParser` includes sophisticated error recovery:
 
 ### Message Role Management
 - **LLM Compatibility**: Prevents consecutive user messages that break AI APIs
+- **System Message Support**: Supports user, assistant, and system roles for comprehensive LLM interactions
 - **Error Handling**: Messages marked with `is_error` flag for failed responses
 - **Context Preservation**: Maintains conversation flow while adding system context
 
@@ -122,6 +133,13 @@ The `SpecificationParser` includes sophisticated error recovery:
 - **Project Dropdown**: Recent projects with metadata (message count, creation date)
 - **State Switching**: Seamless project switching with full state restoration
 - **Settings Persistence**: Project-specific settings stored in database
+
+### LLM-Based Prompt Generation
+- **Platform-Specific Optimization**: Generates tailored prompts for Lovable, v0, Replit, and general platforms
+- **Intelligent Architecture Analysis**: LLM analyzes requirements to recommend optimal tech stacks and patterns
+- **Streaming Generation**: Real-time prompt generation with character-by-character display
+- **Context-Aware Processing**: Incorporates conversation history and structured requirements
+- **Self-Contained Output**: Produces comprehensive prompts requiring no additional clarification
 
 ## Environment Configuration
 
@@ -163,22 +181,32 @@ VITE_MAX_CONVERSATION_LENGTH=50
 ## Common Development Patterns
 
 ### Adding New AI Features
-1. Extend `ChatService` with new method
-2. Add corresponding action to `project-store.ts`
-3. Update UI components to call new actions
-4. Ensure proper error handling and loading states
+1. Extend `ChatService` with new method for basic chat operations
+2. For complex AI operations, create specialized services like `PromptGenerationService`
+3. Add corresponding action to `project-store.ts` with database persistence
+4. Update UI components to call new actions with proper streaming support
+5. Ensure proper error handling, loading states, and API key validation
 
 ### Database Schema Changes
-1. Update schema in `DatabaseService.initializeDatabase()`
-2. Add corresponding TypeScript types
-3. Update CRUD operations in database service
-4. Test migration with existing data
+1. Update schema in `DatabaseService.initializeDatabase()` with proper indexes
+2. Add corresponding TypeScript types and interfaces
+3. Update CRUD operations in database service with transaction support
+4. Test migration with existing data and handle backward compatibility
+5. Update database version number if breaking changes
 
 ### State Management Updates
-1. Modify interfaces in `/src/types/`
-2. Update Zustand store actions
-3. Ensure database persistence for new state
-4. Update UI components to use new state
+1. Modify interfaces in `/src/types/` with proper typing for new fields
+2. Update Zustand store actions with database synchronization
+3. Ensure database persistence for new state with auto-save
+4. Update UI components to use new state with proper loading states
+5. Handle optimistic updates with rollback on failures
+
+### LLM Integration Patterns
+1. Create specialized services for different LLM tasks (chat, prompt generation, parsing)
+2. Implement streaming support for real-time user feedback
+3. Add platform-specific optimization logic for different AI development tools
+4. Handle context management and conversation history efficiently
+5. Implement robust error recovery and fallback mechanisms
 
 ## Performance Considerations
 
@@ -200,9 +228,10 @@ VITE_MAX_CONVERSATION_LENGTH=50
 The project is **fully implemented** with all major features working:
 - ✅ IndexedDB database persistence with project management
 - ✅ AI-powered requirement gathering with OpenAI and Gemini
-- ✅ Structured requirement extraction and editing
-- ✅ Comprehensive prompt generation
-- ✅ Real-time streaming responses
-- ✅ Project switching and state management
-- ✅ Error handling and recovery
-- ✅ Mobile-responsive design
+- ✅ Structured requirement extraction and editing with LLM processing
+- ✅ LLM-based comprehensive prompt generation with platform optimization
+- ✅ Real-time streaming responses for chat and prompt generation
+- ✅ Project switching and state management with auto-save
+- ✅ Platform-specific prompt optimization (Lovable, v0, Replit, General)
+- ✅ Error handling and recovery with graceful degradation
+- ✅ Mobile-responsive design with comprehensive notifications

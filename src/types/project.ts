@@ -31,6 +31,5 @@ export interface ProjectSummary {
 	createdAt: Date;
 	updatedAt: Date;
 	messageCount: number;
-	hasSpecification: boolean;
-	hasGeneratedPrompts: boolean;
+	featureCount: number;
 }

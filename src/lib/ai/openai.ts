@@ -12,7 +12,7 @@ export class OpenAIService {
 	}
 
 	async sendMessage(
-		messages: Array<{ role: "user" | "assistant"; content: string }>,
+		messages: Array<{ role: "user" | "assistant" | "system"; content: string }>,
 	) {
 		try {
 			const { text } = await generateText({
@@ -34,7 +34,7 @@ export class OpenAIService {
 	}
 
 	async sendMessageStream(
-		messages: Array<{ role: "user" | "assistant"; content: string }>,
+		messages: Array<{ role: "user" | "assistant" | "system"; content: string }>,
 		onChunk: (chunk: string) => void,
 	) {
 		try {

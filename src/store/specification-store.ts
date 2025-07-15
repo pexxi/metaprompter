@@ -33,6 +33,7 @@ const createEmptySpecification = (conversationId: string): Specification => ({
 	technicalRequirements: [],
 	constraints: [],
 	uiRequirements: [],
+	techStack: [],
 	createdAt: new Date(),
 	updatedAt: new Date(),
 	conversationId,
