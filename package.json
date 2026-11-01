@@ -11,15 +11,15 @@
 		"type-check": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@ai-sdk/google": "^1.2.22",
-		"@ai-sdk/openai": "^1.3.23",
+		"@ai-sdk/google": "^4.0.109",
+		"@ai-sdk/openai": "^4.0.106",
 		"@google/generative-ai": "^0.24.1",
 		"@headlessui/react": "^2.2.4",
 		"@heroicons/react": "^2.2.0",
-		"ai": "^4.3.19",
+		"ai": "^7.0.159",
 		"idb": "^8.0.3",
 		"nanoid": "^5.1.5",
-		"openai": "^5.9.0",
+		"openai": "^7.47.0",
 		"react": "^18.3.0",
 		"react-dom": "^18.3.0",
 		"zustand": "^5.0.6"
